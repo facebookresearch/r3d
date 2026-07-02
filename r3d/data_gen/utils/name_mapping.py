@@ -1,0 +1,555 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
+"""Static mapping from ADT raw object names to natural language names.
+
+This file contains a curated mapping from the raw object names in the
+Aria Digital Twin dataset to human-readable natural language names.
+
+Usage:
+    from r3d.data_gen.utils.name_mapping import RAW_TO_NATURAL_NAME, get_natural_name
+
+    natural_name = get_natural_name("CoffeeCanisterSmall")
+    # Returns: "small coffee canister"
+"""
+
+from __future__ import annotations
+
+# Mapping from raw ADT object name to natural language name.
+# Objects mapped to None should be skipped (no good natural name).
+RAW_TO_NATURAL_NAME: dict[str, str | None] = {
+    # A
+    "AirPurifier_1": "air purifier",
+    "AirPurifier_2": "air purifier",
+    "AirPurifier_3": "air purifier",
+    "ApartmentDynamicDoubleDoorA": "double door",
+    "ApartmentEnv": None,
+    "Apartment_BalconyDoor": "balcony door",
+    "Apartment_BathroomDoor": "bathroom door",
+    "Apartment_BedroomDoor": "bedroom door",
+    "Apartment_BedroomDoorA": "bedroom door",
+    "Apartment_BedroomDoorB": "bedroom door",
+    "Apartment_CabinetDoorA": None,
+    "Apartment_CabinetDoorB": None,
+    "Apartment_CabinetDoorC": None,
+    "Apartment_CabinetDoorD": None,
+    "Apartment_CabinetDoorE": None,
+    "Apartment_CabinetDoorF": None,
+    "Apartment_CabinetDoorG": None,
+    "Apartment_CabinetDoorH": None,
+    "Apartment_CabinetDoorI": None,
+    "Apartment_CabinetDoorJ": None,
+    "Apartment_CabinetDoorK": None,
+    "Apartment_CabinetDoorL": None,
+    "Apartment_CabinetDoorM": None,
+    "Apartment_CabinetDrawerA": None,
+    "Apartment_CabinetDrawerB": None,
+    "Apartment_CabinetDrawerC": None,
+    "Apartment_CabinetDrawerD": None,
+    "Apartment_CabinetDrawerE": None,
+    "Apartment_CabinetDrawerF": None,
+    "Apartment_CabinetDrawerG": None,
+    "Apartment_ClosetDoorA": "closet door",
+    "Apartment_ClosetDoorB": "closet door",
+    "Apartment_ClosetDoorC": "closet door",
+    "Apartment_ClosetDoorD": "closet door",
+    "Apartment_DoubleDoorB": "double door",
+    "Apartment_DrawerA": None,
+    "Apartment_DrawerB": None,
+    "Apartment_DrawerC": None,
+    "Apartment_DrawerD": None,
+    "Apartment_DrawerE": None,
+    "Apartment_DrawerF": None,
+    "Apartment_DrawerG": None,
+    "Apartment_DrawerH": None,
+    "Apartment_DrawerI": None,
+    "Apartment_DrawerJ": None,
+    "Apartment_DrawerK": None,
+    "Apartment_DrawerL": None,
+    "Apartment_DrawerM": None,
+    "Apartment_DrawerN": None,
+    "Apartment_DrawerO": None,
+    "Apartment_DrawerP": None,
+    "Apartment_DrawerQ": None,
+    "Apartment_DrawerR": None,
+    "Apartment_EntranceDoor": "front door",
+    "Apartment_FridgeDoor": "refrigerator door",
+    "Apartment_LaundryRoomDoor": "laundry room door",
+    "Apartment_OvenDoor": "oven door",
+    "Apartment_release_clean_seq131_M1292_Env": None,
+    "Apartment_StorageDoor": "storage door",
+    # B
+    "BambooPlate": "bamboo plate",
+    "Banana_A": "banana",
+    "BaseballBat_A_Anon": "baseball bat",
+    "BaseballCap_1": "baseball cap",
+    "BaseballCap_2": "baseball cap",
+    "BaseballCap_3": "baseball cap",
+    "BasketPlasticRectangular_A": "plastic basket",
+    "BasketTobaccoRectangular_A": "rectangular basket",
+    "BasketTobaccoSquare_A": "square basket",
+    "Basketball_A_Anon": "basketball",
+    "BathroomCabinet_1": "bathroom cabinet",
+    "BathroomCabinet_2": "bathroom cabinet",
+    "BigScreenTV": "big screen TV",
+    "BirdHouseToy": "bird house toy",
+    "BlackArmChair": "black armchair",
+    "BlackBarStool": "black bar stool",
+    "BlackBarStool_A": "black bar stool",
+    "BlackBarStool_B": "black bar stool",
+    "BlackBedFrame": "black bed frame",
+    "BlackBuckPicture": "picture",
+    "BlackCeramicBowl": "black ceramic bowl",
+    "BlackCeramicDishLarge": "large black ceramic dish",
+    "BlackCeramicDishSmall": "small black ceramic dish",
+    "BlackCeramicMug": "black ceramic mug",
+    "BlackCoffeeTable": "black coffee table",
+    "BlackDragonfigure_1": "dragon figurine",
+    "BlackFrameLarge": "large black frame",
+    "BlackFrameSmall_1": "small black frame",
+    "BlackFrameSmall_2": "small black frame",
+    "BlackKitchenChair": "black kitchen chair",
+    "BlackKitchenChair_B": "black kitchen chair",
+    "BlackPictureFrame": "black picture frame",
+    "BlackRoundTable": "black round table",
+    "BlackSquarePictureFrame": "black square picture frame",
+    "BlackTablet": "tablet",
+    "BlackVaseBig_1": "large black vase",
+    "BlackVaseBig_2": "large black vase",
+    "BlackVaseMedium_1": "black vase",
+    "BlackVaseMedium_2": "black vase",
+    "BlackVaseSmall_1": "small black vase",
+    "BlackVaseSmall_2": "small black vase",
+    "BlackWallShelf": "black wall shelf",
+    "BlasterGame": "blaster game",
+    "BlasterGameBase": "blaster game base",
+    "Bleach_1": "bleach",
+    "Bleach_2": "bleach",
+    "Bleach_4": "bleach",
+    "Blender_1": "blender",
+    "BookBoxBig_1": "large book box",
+    "BookBoxBig_2": "large book box",
+    "BookBoxSmall_1": "small book box",
+    "BookBoxSmall_2": "small book box",
+    "BookComic1_00": "comic book",
+    "BookComic1_01": "comic book",
+    "BookCooking1_00": "cookbook",
+    "BookCooking1_01": "cookbook",
+    "BookDeepLearning": "book",
+    "BookFiction10_00": "book",
+    "BookFiction10_01": "book",
+    "BookFiction1_00": "book",
+    "BookFiction1_01": "book",
+    "BookFiction7_00": "book",
+    "BookFiction7_01": "book",
+    "BookFiction8_00": "book",
+    "BookFiction8_01": "book",
+    "BookFiction9_00": "book",
+    "BookFiction9_01": "book",
+    "BookJournal_00": "journal",
+    "BookJournal_01": "journal",
+    "BookLearning1_00": "book",
+    "BookLearning1_01": "book",
+    "Bookcase": "bookcase",
+    "BuletteFigure_1": "figurine",
+    "BuletteFigure_2": "figurine",
+    # C
+    "CakeMocha_A": "mocha cake",
+    "CandleDishMedium": "candle dish",
+    "CandleDishSmall": "small candle dish",
+    "CandlePattern01_1": "candle",
+    "CandlePattern01_2": "candle",
+    "CandlePattern02_1": "candle",
+    "CandlePattern02_2": "candle",
+    "CandlePattern03_1": "candle",
+    "CandlePattern03_2": "candle",
+    "CandlePattern04_1": "candle",
+    "CandlePattern04_2": "candle",
+    "CarKey_1": "car keys",
+    "CarKey_2": "car keys",
+    "Carrot_A": "carrot",
+    "CatNightLight_1": "cat night light",
+    "CatNightLight_2": "cat night light",
+    "CatWaterBowlGrey_1": "grey cat water bowl",
+    "CatWaterBowlWhite_1": "white cat water bowl",
+    "Cereal_Anon": "cereal box",
+    "ChargingStation_1": "charging station",
+    "ChargingStation_2": "charging station",
+    "ChoppingBoard": "chopping board",
+    "ClotheSpray_1": "clothes spray",
+    "ClotheSpray_2": "clothes spray",
+    "CloudNightLight_1": "cloud night light",
+    "CoatRackShoeBench": "coat rack shoe bench",
+    "CoffeeCanisterLarge": "large coffee canister",
+    "CoffeeCanisterSmall": "small coffee canister",
+    "CoffeeMaker": "coffee maker",
+    "CoffeePodMugCarousel_1": "coffee pod carousel",
+    "ConsoleTable": "console table",
+    "CornerDisplayShelves_1": "corner display shelves",
+    "Cracker_Anon": "crackers",
+    "CurtainVarAHangingCurtain01_1": "curtain",
+    "CurtainVarAHangingCurtain01_2": "curtain",
+    "CurtainVarAHangingCurtain02_1": "curtain",
+    "CurtainVarAHangingCurtain02_2": "curtain",
+    # D
+    "DecorativeBoxCubeLarge": "large decorative box",
+    "DecorativeBoxHexLarge": "large hexagonal box",
+    "DecorativeBoxHexMedium": "hexagonal box",
+    "DecorativeBoxHexSmall": "small hexagonal box",
+    "DecorativeBoxRecSmall": "small rectangular box",
+    "DeerNightLight_1": "deer night light",
+    "DeerNightLight_2": "deer night light",
+    "DinoToy": "dinosaur toy",
+    "DishSoap_1": "dish soap",
+    "DisplayDragon": "dragon display",
+    "DisplayShelves01_1": "display shelves",
+    "DisplayShelves_1": "display shelves",
+    "DisplayUnit_1": "display unit",
+    "DisplayWolf": "wolf display",
+    "Donut_B": "donut",
+    "DvdPlayer_1": "DVD player",
+    "DvdRemote_1": "DVD remote",
+    # E
+    "ExtendableTable": "extendable table",
+    # F
+    "FabricSoftener_1": "fabric softener",
+    "FabricSoftener_2": "fabric softener",
+    "FabricSoftener_3": "fabric softener",
+    "FacebookPortal": "Facebook Portal",
+    "Figurine": "figurine",
+    "FireAlarm": "fire alarm",
+    "Flask": "flask",
+    "FloatingShelf03Pattern01_1": "floating shelf",
+    "FloatingShelf03Pattern02_1": "floating shelf",
+    "FloatingShelf04_1": "floating shelf",
+    "FloatingShelf_1": "floating shelf",
+    "FloatingShelf_2": "floating shelf",
+    "FloatingShelf_3": "floating shelf",
+    "FloatingShelf_4": "floating shelf",
+    "FloatingShelf_5": "floating shelf",
+    "FloatingShelf_6": "floating shelf",
+    "FloatingShelf_7": "floating shelf",
+    "FloatingShelf_8": "floating shelf",
+    "FoodProcessor_1": "food processor",
+    "FrameLarge": "large frame",
+    "FrameMedium": "frame",
+    "FrameSmall": "small frame",
+    "Fridge": "refrigerator",
+    "Frisbee_Anon": "frisbee",
+    "FryingPan": "frying pan",
+    # G
+    "GameControllerBlack": "black game controller",
+    "GameControllerWhite": "white game controller",
+    "GamingMousepad": "gaming mousepad",
+    "GiffFigure_1": "figurine",
+    "GlassCabinet": "glass cabinet",
+    "GreenApple_A": "green apple",
+    "GreenDecorationShort": "short green decoration",
+    "GreenDecorationTall": "tall green decoration",
+    "GreenPear_A": "pear",
+    "GreentDecorationMedium": "green decoration",
+    "GreySofa": "grey sofa",
+    # H
+    "HandSoap_1": "hand soap",
+    "HeatTrivet": "heat trivet",
+    "Hook_2": "hook",
+    "Hook_3": "hook",
+    "Hook_4": "hook",
+    "Hook_5": "hook",
+    "HugeBookishDragon_1": "dragon figurine",
+    "Humidifier_1": "humidifier",
+    "Humidifier_2": "humidifier",
+    "HybridMattress": "mattress",
+    # J
+    "Jam_Anon": "jam jar",
+    # K
+    "Kettle_1": "kettle",
+    "Keyboard_1": "keyboard",
+    "KitchIsland": "kitchen island",
+    "KitchenKnife": "kitchen knife",
+    "KitchenRack_1": "kitchen rack",
+    "KitchenScissorsBlack_1": "black kitchen scissors",
+    "KitchenScissorsRed_1": "red kitchen scissors",
+    "KittyBowl_1": "kitty bowl",
+    "KittyBowl_2": "kitty bowl",
+    "KittyBowl_3": "kitty bowl",
+    # L
+    "Lamp_1": "lamp",
+    "LargePot": "large pot",
+    "LaundaryDetergent_1": "laundry detergent",
+    "LaundryBasket_1": "laundry basket",
+    "Lemon_A": "lemon",
+    # LiteOffice objects
+    "LiteOffice_BlindsController": None,
+    "LiteOffice_CeilingRouter": None,
+    "LiteOffice_Desk_A": "desk",
+    "LiteOffice_Desk_B": "desk",
+    "LiteOffice_Door": None,
+    "LiteOffice_DoorFrame": None,
+    "LiteOffice_Emergency": None,
+    "LiteOffice_GSOCsign": None,
+    "LiteOffice_LutronDimmer": None,
+    "LiteOffice_Picture_A": "picture",
+    "LiteOffice_Picture_B": "picture",
+    "LiteOffice_Sofa_Pleather": "sofa",
+    "LiteOffice_Survey_Marker_A": None,
+    "LiteOffice_Survey_Marker_B": None,
+    "LiteOffice_Survey_Marker_C": None,
+    "LiteOffice_Survey_Marker_D": None,
+    "LiteOffice_Table": "table",
+    "LiteOffice_Thermostat": "thermostat",
+    "LiteOffice_Wall_A": None,
+    "LiteOffice_WiFi_Router_A": "wifi router",
+    "LiteOffice_WiFi_Router_B": "wifi router",
+    "LiteOffice_WiFi_Router_C": "wifi router",
+    "LiteOffice_WiFi_Router_D": "wifi router",
+    "LiteOffice_Window_Frame": None,
+    "LiteOffice_Window_Shade_A": None,
+    "LiteOffice_Window_Shade_B": None,
+    # M
+    "Magazine01_1": "magazine",
+    "Magazine01_2": "magazine",
+    "Magazine02_1": "magazine",
+    "Magazine02_2": "magazine",
+    "Magazine03_1": "magazine",
+    "Magazine03_2": "magazine",
+    "Magazine04_1": "magazine",
+    "Magazine04_2": "magazine",
+    "Mango_A": "mango",
+    "Melon_A": "melon",
+    "Mortar": "mortar",
+    "Mouse_1": "computer mouse",
+    "MuffinPan": "muffin pan",
+    "MugCat_1": "cat mug",
+    "MugCat_2": "cat mug",
+    "MugCat_3": "cat mug",
+    "MugCat_4": "cat mug",
+    "Mug_2": "mug",
+    # N
+    "NIT_CoffeeCan_Anon": "coffee can",
+    "Napkin1_00": "napkin",
+    "Napkin1_01": "napkin",
+    "Napkin1_02": "napkin",
+    "NightStand": "nightstand",
+    # O
+    "Onion_A": "onion",
+    "Orange_A": "orange",
+    # P
+    "Pestel": "pestle",
+    "PictureLedge": "picture ledge",
+    "Pillow_1": "pillow",
+    "Pillow_2": "pillow",
+    "Plant1_1": "plant",
+    "Plant2_1": "plant",
+    "Plant2_2": "plant",
+    "Plant2_3": "plant",
+    "Plant2_4": "plant",
+    "Plant2_5": "plant",
+    "Plant3_1": "plant",
+    "Plant3_2": "plant",
+    "Plant4_1": "plant",
+    "Plant4_2": "plant",
+    "Plant4_3": "plant",
+    "Plant5_1": "plant",
+    "Plant5_2": "plant",
+    "PlateHolder": "plate holder",
+    "PortableCooktop": "portable cooktop",
+    "Potato_A": "potato",
+    "PuppyNightLight_1": "puppy night light",
+    "PuppyNightLight_2": "puppy night light",
+    # R
+    "RecordPlayer_1": "record player",
+    "RedArmChair": "red armchair",
+    "RedClock": "red clock",
+    "RedWingChair": "red wing chair",
+    # S
+    "SandwichBLT_A": "BLT sandwich",
+    "SecurityCamera": "security camera",
+    "Skeleton_C": None,
+    "Skeleton_T": None,
+    "SketchBook_1": "sketchbook",
+    "SketchBook_2": "sketchbook",
+    "SmartSpeaker_1": "smart speaker",
+    "SmartSpeaker_2": "smart speaker",
+    "SmartSpeaker_3": "smart speaker",
+    "SmartWifiRouter_1": "wifi router",
+    "SmartWifiRouter_2": "wifi router",
+    "SmartWifiRouter_3": "wifi router",
+    "SpeakerBig_1": "large speaker",
+    "SpeakerMedium_1": "speaker",
+    "SpeakerSmall_1": "small speaker",
+    "SpiceJarBBQ": "BBQ spice jar",
+    "SpiceJarCurryPowder": "curry powder jar",
+    "SpiceJarPepper": "pepper jar",
+    "SpiceJarSalt": "salt jar",
+    "SpiceRack": "spice rack",
+    "SprayStainRemover_1": "stain remover spray",
+    "StepLadder_1": "step ladder",
+    "StepStool": "step stool",
+    "SugarCanister_1": "sugar canister",
+    "SupplyBinAccessory_00": "supply bin",
+    "SupplyBinAccessory_01": "supply bin",
+    # T
+    "TVUnit": "TV unit",
+    "TabletStand": "tablet stand",
+    "Thermostat": "thermostat",
+    "Thermostat_1": "thermostat",
+    "Thermostat_2": "thermostat",
+    "Thermostat_3": "thermostat",
+    "TissueBox_1": "tissue box",
+    "TissueBox_3": "tissue box",
+    "Toaster_1": "toaster",
+    "Tomato_A": "tomato",
+    "ToothbrushHolder": "toothbrush holder",
+    "TrashCan_1": "trash can",
+    "TvRemote_1": "TV remote",
+    # U
+    "UtilityCart": "utility cart",
+    # V
+    "VaseBig_1": "large vase",
+    "VaseBig_2": "large vase",
+    "VaseMedium_1": "vase",
+    "VaseMedium_2": "vase",
+    "VaseSmall_1": "small vase",
+    "VaseSmall_2": "small vase",
+    "VinylHolder_1": "vinyl holder",
+    "VinylHolder_2": "vinyl holder",
+    "VinylHolder_3": "vinyl holder",
+    "VinylHolder_4": "vinyl holder",
+    "VinylHolder_5": "vinyl holder",
+    "VinylHolder_6": "vinyl holder",
+    "VinylMusic1": "vinyl record",
+    "VinylMusic2": "vinyl record",
+    "VinylMusic3": "vinyl record",
+    "VinylMusic4": "vinyl record",
+    "VinylMusic5": "vinyl record",
+    "VinylMusic6": "vinyl record",
+    # W
+    "WallClockB": "wall clock",
+    "WallClockT": "wall clock",
+    "WallClothesHanger": "wall clothes hanger",
+    "WallDecorBlackWhite01_1": "black and white wall art",
+    "WallDecorBlackWhite02_1": "black and white wall art",
+    "WallDecorRedWhite01_1": "red and white wall art",
+    "WallDecorRedWhite02_1": "red and white wall art",
+    "WallDecorRedWhite03_1": "red and white wall art",
+    "WallDecorRedWhite04_1": "red and white wall art",
+    "WallDecorVanGogh01_1": "Van Gogh print",
+    "WallDecorVanGogh02_1": "Van Gogh print",
+    "WallDecorVanGogh03_1": "Van Gogh print",
+    "Wallet_1": "wallet",
+    "WhaleNightLight_1": "whale night light",
+    "WhaleNightLight_2": "whale night light",
+    "WhitTableLamp": "white table lamp",
+    "WhiteCabinet_1": "white cabinet",
+    "WhiteCabinet_2": "white cabinet",
+    "WhiteCabinet_3": "white cabinet",
+    "WhiteChair": "white chair",
+    "WhiteClip_1": "white clip",
+    "WhiteClip_2": "white clip",
+    "WhiteContainer": "white container",
+    "WhiteContainerBox": "white container box",
+    "WhiteDressingTable": "white dressing table",
+    "WhiteFlatwareTray": "white flatware tray",
+    "WhiteHook_1": "white hook",
+    "WhiteHook_2": "white hook",
+    "WhiteLiddedTrashBin": "white lidded trash bin",
+    "WhiteNightstand": "white nightstand",
+    "WhitePegboard": "white pegboard",
+    "WhitePictureLedge": "white picture ledge",
+    "WhiteTrashBin": "white trash bin",
+    "WhiteUtensilTray": "white utensil tray",
+    "WhiteVase": "white vase",
+    "WhiteVaseBig_1": "large white vase",
+    "WhiteVaseBig_2": "large white vase",
+    "WhiteVaseMedium_1": "white vase",
+    "WhiteVaseMedium_2": "white vase",
+    "WhiteVaseSmall_1": "small white vase",
+    "WhiteVaseSmall_2": "small white vase",
+    "WireShelvingUnitBlackSmall_1": "small black wire shelving unit",
+    "WireShelvingUnitBlack_1": "black wire shelving unit",
+    "WoodenBowl": "wooden bowl",
+    "WoodenBoxLarge": "large wooden box",
+    "WoodenBoxSmall": "small wooden box",
+    "WoodenFork": "wooden fork",
+    "WoodenPlantPot": "wooden plant pot",
+    "WoodenSpoon": "wooden spoon",
+    "WoodenToothbrushHolder": "wooden toothbrush holder",
+    "WoodenWineRack": "wooden wine rack",
+    # Y
+    "YellowArmChair": "yellow armchair",
+    "YellowDiningChair": "yellow dining chair",
+    "YellowFrame": "yellow frame",
+}
+
+
+def get_natural_name(raw_name: str) -> str | None:
+    """Get the natural language name for a raw ADT object name.
+
+    Args:
+        raw_name: The raw object name from ADT (e.g., "CoffeeCanisterSmall")
+
+    Returns:
+        The natural language name (e.g., "small coffee canister") or None
+        if the object should be skipped.
+
+    Raises:
+        KeyError: If raw_name is not in the mapping. All ADT object names
+            must be explicitly listed in RAW_TO_NATURAL_NAME.
+    """
+    if raw_name not in RAW_TO_NATURAL_NAME:
+        raise KeyError(
+            f"Unknown ADT object name: '{raw_name}'. "
+            f"Add it to RAW_TO_NATURAL_NAME in name_mapping.py."
+        )
+    return RAW_TO_NATURAL_NAME[raw_name]
+
+
+# ---------------------------------------------------------------------------
+# v0p3: Consistent adjective rules for v2 annotations
+# ---------------------------------------------------------------------------
+
+# Adjective rules applied uniformly:
+#   - Color adjectives (black, red, white, green, yellow, grey): ALWAYS include
+#   - Size adjectives (small, large): ALWAYS include (medium = default, omitted)
+#   - Material adjectives (wooden, ceramic, bamboo, plastic): ALWAYS include
+#
+# Changes from v0p2 (5 entries fixed):
+#   BlackTablet:          "tablet"          -> "black tablet"
+#   BlackBuckPicture:     "picture"         -> "black picture"
+#   BlackDragonfigure_1:  "dragon figurine" -> "black dragon figurine"
+#   GreenPear_A:          "pear"            -> "green pear"
+#   HugeBookishDragon_1:  "dragon figurine" -> "large dragon figurine"
+
+RAW_TO_NATURAL_NAME_V0P3: dict[str, str | None] = {
+    **RAW_TO_NATURAL_NAME,
+    # Fixed: color adjective was stripped
+    "BlackTablet": "black tablet",
+    "BlackBuckPicture": "black picture",
+    "BlackDragonfigure_1": "black dragon figurine",
+    "GreenPear_A": "green pear",
+    # Fixed: size adjective was stripped
+    "HugeBookishDragon_1": "large dragon figurine",
+}
+
+
+def get_natural_name_v0p3(raw_name: str) -> str | None:
+    """Get the v0p3 natural language name for a raw ADT object name.
+
+    Uses consistent adjective rules: color, size, and material adjectives
+    are always included.
+
+    Args:
+        raw_name: The raw object name from ADT
+
+    Returns:
+        The natural language name or None if the object should be skipped.
+
+    Raises:
+        KeyError: If raw_name is not in the mapping.
+    """
+    if raw_name not in RAW_TO_NATURAL_NAME_V0P3:
+        raise KeyError(
+            f"Unknown ADT object name: '{raw_name}'. "
+            f"Add it to RAW_TO_NATURAL_NAME_V0P3 in name_mapping.py."
+        )
+    return RAW_TO_NATURAL_NAME_V0P3[raw_name]

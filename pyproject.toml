@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "r3d"
+version = "0.1.0"
+description = "R3D: Reasoning in 3D — spatial reasoning benchmark for wearables"
+requires-python = ">=3.10"
+license = {text = "CC-BY-NC-4.0"}
+dynamic = ["dependencies"]
+
+[project.scripts]
+r3d-populate-frames = "r3d.pipeline.scripts.populate_frames:main"
+r3d-build-scene = "r3d.pipeline.scripts.build_scene:main"
+r3d-generate-responses = "r3d.pipeline.scripts.generate_responses:main"
+r3d-generate-scores = "r3d.pipeline.scripts.generate_scores:main"
+r3d-generate-eval-table = "r3d.pipeline.scripts.generate_eval_table:main"
+r3d-generate-qa = "r3d.data_gen.generate_qa:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["r3d*"]
