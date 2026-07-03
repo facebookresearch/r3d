@@ -11,4 +11,4 @@ torch>=2.10.0
 torchvision>=0.18
 transformers>=4.45
 accelerate>=0.27
-vllm==0.19.0
+vllm==0.24.0
