@@ -2,10 +2,10 @@
 
 ![R3D teaser](assets/teaser.png)
 
-This is the official repository for **R3D: Quantitative 3D Spatial Reasoning for Egocentric Wearables**.
+This is the official repository for [**R3D: Quantitative 3D Spatial Reasoning for Egocentric Wearables**](https://arxiv.org/abs/2607.02921).
 
 This repository includes:
-- **R3D-Bench**: a benchmark evaluation for quantitative 3D Spatial Reasoning using natural egocentric RGB-D video.
+- [**R3D-Bench**](https://huggingface.co/datasets/facebook/r3d-bench): a benchmark evaluation for quantitative 3D Spatial Reasoning using natural egocentric RGB-D video.
 - **R3D**: a system for 3D spatial reasoning with tool calling.
 
 The repository contains:
@@ -357,6 +357,22 @@ The [`scripts/`](scripts/) directory wraps the commands used to build and evalua
 |-------------|-------------|
 | `r3d.pipeline.scripts.generate_responses` | R3D tool-use: multi-turn, model calls spatial tools (get_distance, get_position, get_volume, etc.) over the reconstructed 3D scene |
 | `r3d.scripts.rgb_overlay_evals` | RGB baseline: single-turn, model sees multi-frame images, optionally with `--overlay` segmentation masks |
+
+## Citation
+
+When using our work, please cite as follows:
+
+```bibtex
+@misc{horton2026r3dquantitative3dspatial,
+      title={R3D: Quantitative 3D Spatial Reasoning for Egocentric Wearables},
+      author={Maxwell Horton and Wei Lu and Quan Tran and Yury Astashonok and Kirmani Ahmed and Babak Damavandi and Anuj Kumar and Xiao Zhang and Seungwhan Moon},
+      year={2026},
+      eprint={2607.02921},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2607.02921},
+}
+```
 
 ## License
 
