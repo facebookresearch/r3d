@@ -33,6 +33,7 @@ The repository contains:
 - [Key Flags](#key-flags)
 - [Evaluation Entry Points](#evaluation-entry-points)
 - [License](#license)
+- [Citation](#citation)
 
 ## Installation
 
@@ -358,6 +359,10 @@ The [`scripts/`](scripts/) directory wraps the commands used to build and evalua
 | `r3d.pipeline.scripts.generate_responses` | R3D tool-use: multi-turn, model calls spatial tools (get_distance, get_position, get_volume, etc.) over the reconstructed 3D scene |
 | `r3d.scripts.rgb_overlay_evals` | RGB baseline: single-turn, model sees multi-frame images, optionally with `--overlay` segmentation masks |
 
+## License
+
+This project is licensed under [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](LICENSE).
+
 ## Citation
 
 When using our work, please cite as follows:
@@ -373,7 +378,3 @@ When using our work, please cite as follows:
       url={https://arxiv.org/abs/2607.02921},
 }
 ```
-
-## License
-
-This project is licensed under [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](LICENSE).
