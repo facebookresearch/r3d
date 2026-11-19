@@ -173,6 +173,7 @@ class HFVLMClient(VLMClient):
             chat_messages,
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=False,
         )
         inputs = self._processor(
             text=[text],
@@ -200,6 +201,7 @@ class HFVLMClient(VLMClient):
             chat_messages,
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=False,
         )
         inputs = tokenizer([text], return_tensors="pt").to(self._model.device)
         input_len = inputs["input_ids"].shape[1]

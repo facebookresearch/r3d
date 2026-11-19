@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,8 @@ from r3d.pipeline.frame_data import CameraIntrinsics, DepthSource, FrameData
 from r3d.pipeline.segmentation import FrameSegmentation, ObjectSegmentation
 from r3d.pipeline.stores.base import (
     AnnotationStore,
+    CubifyObjectResult,
+    CubifyStore,
     FrameStore,
     FrameVisibility,
     MeshStore,
@@ -122,6 +125,9 @@ class SQLiteFrameStore(FrameStore):
     def __init__(self, db_path: Path, read_only: bool = False) -> None:
         self._db_dir = db_path.parent
         self._conn = _init_connection(db_path, read_only=read_only)
+        # One connection is shared by every thread (e.g. the RGB eval pool);
+        # concurrent statements on it return missing rows or raise.
+        self._read_lock = threading.Lock()
         if read_only:
             return
         self._conn.execute("""
@@ -234,25 +240,28 @@ class SQLiteFrameStore(FrameStore):
             raise
 
     def get_all_timestamps(self, sequence_id: str) -> list[int]:
-        rows = self._conn.execute(
-            "SELECT timestamp_ns FROM frames WHERE sequence_id = ? ORDER BY timestamp_ns",
-            (sequence_id,),
-        ).fetchall()
+        with self._read_lock:
+            rows = self._conn.execute(
+                "SELECT timestamp_ns FROM frames WHERE sequence_id = ? ORDER BY timestamp_ns",
+                (sequence_id,),
+            ).fetchall()
         return [row["timestamp_ns"] for row in rows]
 
     def get_frame_count(self, sequence_id: str) -> int:
-        row = self._conn.execute(
-            "SELECT COUNT(*) as cnt FROM frames WHERE sequence_id = ?",
-            (sequence_id,),
-        ).fetchone()
+        with self._read_lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) as cnt FROM frames WHERE sequence_id = ?",
+                (sequence_id,),
+            ).fetchone()
         assert row is not None
         return int(row["cnt"])
 
     def load_frame(self, sequence_id: str, timestamp_ns: int) -> FrameData:
-        row = self._conn.execute(
-            "SELECT * FROM frames WHERE sequence_id = ? AND timestamp_ns = ?",
-            (sequence_id, timestamp_ns),
-        ).fetchone()
+        with self._read_lock:
+            row = self._conn.execute(
+                "SELECT * FROM frames WHERE sequence_id = ? AND timestamp_ns = ?",
+                (sequence_id, timestamp_ns),
+            ).fetchone()
         if row is None:
             raise KeyError(
                 f"No frame at timestamp {timestamp_ns} for sequence {sequence_id}"
@@ -305,11 +314,12 @@ class SQLiteFrameStore(FrameStore):
         Used by the multiview membership vote, which needs geometry only and
         would otherwise decode two PNGs per (object, frame) redundantly.
         """
-        row = self._conn.execute(
-            "SELECT fx, fy, cx, cy, img_width, img_height, T_scene_device, "
-            "T_device_camera FROM frames WHERE sequence_id = ? AND timestamp_ns = ?",
-            (sequence_id, timestamp_ns),
-        ).fetchone()
+        with self._read_lock:
+            row = self._conn.execute(
+                "SELECT fx, fy, cx, cy, img_width, img_height, T_scene_device, "
+                "T_device_camera FROM frames WHERE sequence_id = ? AND timestamp_ns = ?",
+                (sequence_id, timestamp_ns),
+            ).fetchone()
         if row is None:
             raise KeyError(
                 f"No frame at timestamp {timestamp_ns} for sequence {sequence_id}"
@@ -329,10 +339,49 @@ class SQLiteFrameStore(FrameStore):
         )
 
     def get_all_sequence_ids(self) -> list[str]:
-        rows = self._conn.execute(
-            "SELECT DISTINCT sequence_id FROM frames ORDER BY sequence_id"
-        ).fetchall()
+        with self._read_lock:
+            rows = self._conn.execute(
+                "SELECT DISTINCT sequence_id FROM frames ORDER BY sequence_id"
+            ).fetchall()
         return [row["sequence_id"] for row in rows]
+
+    def close(self) -> None:
+        self._conn.close()
+
+
+# ---------------------------------------------------------------------------
+# CubifyStore
+# ---------------------------------------------------------------------------
+
+
+class SQLiteCubifyStore(CubifyStore):
+    """Read-only access to the aggregated CuTR boxes in cubify.db."""
+
+    def __init__(self, db_path: Path) -> None:
+        if not db_path.exists():
+            raise FileNotFoundError(f"cubify.db not found: {db_path}")
+        self._conn = _init_connection(db_path, read_only=True)
+
+    def get_object_result(
+        self, sequence_id: str, object_id: int
+    ) -> CubifyObjectResult | None:
+        row = self._conn.execute(
+            """SELECT * FROM cubify_object_results
+            WHERE sequence_id = ? AND object_id = ?""",
+            (sequence_id, object_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return CubifyObjectResult(
+            sequence_id=row["sequence_id"],
+            object_id=row["object_id"],
+            query_name=row["query_name"],
+            obb_aabb=_blob_to_ndarray(row["obb_aabb"], (6,)),
+            obb_transform=_blob_to_ndarray(row["obb_transform"], (4, 4)),
+            position=_blob_to_ndarray(row["position"], (3,)),
+            num_detections=row["num_detections"],
+            aggregation_method=row["aggregation_method"],
+        )
 
     def close(self) -> None:
         self._conn.close()

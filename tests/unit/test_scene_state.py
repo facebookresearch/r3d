@@ -146,5 +146,30 @@ class TestSceneStateObjects(unittest.TestCase):
             scene_store.close()
 
 
+class TestSceneStateVolumeMethod(unittest.TestCase):
+    def test_bbox_volume_is_obb_volume_without_mesh_store(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_store, seq_id = _make_scene(tmpdir)
+            state = SceneState(scene_store, seq_id, volume_method="bbox")
+            self.assertAlmostEqual(state.get_object_volume(1), 6.0)
+            self.assertIsNone(state.get_object_volume(2))
+            scene_store.close()
+
+    def test_mesh_rescaled_requires_mesh_store(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_store, seq_id = _make_scene(tmpdir)
+            state = SceneState(scene_store, seq_id)
+            with self.assertRaises(RuntimeError):
+                state.get_object_volume(1)
+            scene_store.close()
+
+    def test_unknown_volume_method_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            scene_store, seq_id = _make_scene(tmpdir)
+            with self.assertRaises(ValueError):
+                SceneState(scene_store, seq_id, volume_method="gaussians")
+            scene_store.close()
+
+
 if __name__ == "__main__":
     unittest.main()

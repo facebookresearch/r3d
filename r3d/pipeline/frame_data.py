@@ -3,8 +3,7 @@
 """Core frame data types for the R3D spatial AI pipeline.
 
 FrameData is the universal per-frame representation used by all pipeline
-stages. CameraIntrinsics replaces the untyped calibration objects used
-throughout the codebase.
+stages. CameraIntrinsics holds pinhole camera intrinsics.
 
 Uses the pydantic v1 API for broad compatibility.
 """

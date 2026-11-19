@@ -17,6 +17,30 @@ import trimesh
 from r3d.data_gen.utils.functional_volume import compute_functional_volume
 
 
+_VOLUME_SOURCE: dict[str, str] = {
+    "mesh_rescaled": "computed from the object's rescaled 3D mesh",
+    "bbox": "computed from the object's 3D reconstruction",
+}
+
+_VOLUME_ERROR: dict[str, str] = {
+    "mesh_rescaled": "Error: could not compute rescaled mesh volume for object {oid}.",
+    "bbox": "Error: object has no reconstruction.",
+}
+
+
+def format_volume_result(volume_m3: float, volume_method: str) -> str:
+    """``get_object_volume`` output for a volume estimate (``volume_method`` wording)."""
+    return (
+        f"estimated_volume={volume_m3:.6f} cubic meters "
+        f"({volume_m3 * 1000:.3f} liters), {_VOLUME_SOURCE[volume_method]}"
+    )
+
+
+def format_volume_error(volume_method: str, object_id: int) -> str:
+    """``get_object_volume`` output when no estimate is available."""
+    return _VOLUME_ERROR[volume_method].format(oid=object_id)
+
+
 def bbox_volume(obb_aabb: np.ndarray) -> float:
     """Volume from OBB AABB [xmin, xmax, ymin, ymax, zmin, zmax]."""
     return float(

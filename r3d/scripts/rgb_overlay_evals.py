@@ -150,18 +150,22 @@ def main() -> None:
             max_frames=args.max_frames,
         )
 
-    if args.concurrency > 1 and args.data_parallel_size > 1:
-        import concurrent.futures
+    try:
+        if args.concurrency > 1 and args.data_parallel_size > 1:
+            import concurrent.futures
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=args.concurrency
-        ) as pool:
-            futures = [pool.submit(_process, a) for a in annotations]
-            for future in concurrent.futures.as_completed(futures):
-                response_store.write(future.result())
-    else:
-        for ann in annotations:
-            response_store.write(_process(ann))
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=args.concurrency
+            ) as pool:
+                futures = [pool.submit(_process, a) for a in annotations]
+                for future in concurrent.futures.as_completed(futures):
+                    response_store.write(future.result())
+        else:
+            for ann in annotations:
+                response_store.write(_process(ann))
+    finally:
+        if hasattr(vlm, "shutdown"):
+            vlm.shutdown()
     logger.info(f"Wrote {len(annotations)} responses")
 
     if args.score:

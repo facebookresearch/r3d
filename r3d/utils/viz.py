@@ -89,9 +89,8 @@ def project_obb_to_2d(
 ) -> np.ndarray | None:
     """Project an OBB to 2D image coordinates using pinhole projection.
 
-    For use with pipeline FrameData (pre-undistorted, no rotation needed).
-    Unlike project_3d_box_corners, this does NOT apply the 90-degree Aria
-    rotation -- pipeline frames are already in upright orientation.
+    For use with pipeline FrameData (pre-undistorted and upright, so no
+    rotation is needed).
 
     Args:
         obb_aabb: shape (6,) [xmin, xmax, ymin, ymax, zmin, zmax] in local frame.

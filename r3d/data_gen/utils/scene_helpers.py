@@ -1,11 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
-"""Scene-level helper functions shared across question generators.
-
-Relocated from global_qs.common, global_qs.complex_reasoning_utils,
-and global_qs.how_long so that v2 generators can depend on utils
-rather than reaching back into global_qs.
-"""
+"""Scene-level helper functions shared across question generators."""
 
 from __future__ import annotations
 
@@ -27,7 +22,6 @@ HELD_OBJECT_DISTANCE_THRESHOLD = 0.3
 
 
 # ---------------------------------------------------------------------------
-# From global_qs/common.py
 # ---------------------------------------------------------------------------
 
 
@@ -172,7 +166,6 @@ def get_video_object_info(
 
 
 # ---------------------------------------------------------------------------
-# From global_qs/how_long.py
 # ---------------------------------------------------------------------------
 
 

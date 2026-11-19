@@ -8,9 +8,6 @@ Three-layer annotation schema for spatial reasoning evaluation:
 2. **Disambiguation Layer**: How multi-instance ambiguity is resolved.
 3. **Query Layer**: The question, expected answer, and evaluation method.
 
-This is a clean break from v1. No backward compatibility with
-_PartialAnnotationSample / AnnotationSample.
-
 Uses pydantic v2 API.
 """
 
@@ -19,7 +16,7 @@ from __future__ import annotations
 import random
 import uuid
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Union
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -295,38 +292,3 @@ class Annotation(BaseModel):
         default_factory=DisambiguationLayer,
     )
     query_layer: QueryLayer
-
-
-# ---------------------------------------------------------------------------
-# Generation Manifest
-# ---------------------------------------------------------------------------
-
-
-class GenerationManifest(BaseModel):
-    """Metadata about how a batch of annotations was generated.
-
-    Tracks reproducibility information per the CEO review acceptance.
-    """
-
-    manifest_id: str = Field(description="Unique manifest identifier")
-    version: Literal["2.0"] = "2.0"
-    commit_hash: str = Field(description="Sapling commit hash at generation time")
-    generation_timestamp: str = Field(description="ISO 8601 timestamp")
-    sequences: List[str] = Field(description="ADT sequence IDs processed")
-    settings: Dict[str, Union[str, int, float, bool]] = Field(
-        default_factory=dict,
-        description="Generation settings (fps, thresholds, etc.)",
-    )
-    annotation_count: int = Field(description="Total annotations generated")
-    annotations_by_question_type: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Count per question type",
-    )
-    annotations_by_disambiguation_method: Dict[str, int] = Field(
-        default_factory=dict,
-        description="Count per disambiguation method",
-    )
-    skipped_objects: List[Dict[str, str]] = Field(
-        default_factory=list,
-        description="Objects skipped with reasons",
-    )

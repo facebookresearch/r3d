@@ -148,7 +148,7 @@ class ObjectInfo:
 
     Contains only static / image-based fields needed for local (per-frame)
     question generation.  Temporal fields (movement, visibility) live on
-    VideoObjectInfo in generators.global_qs.common.
+    VideoObjectInfo.
     """
 
     instance_id: int

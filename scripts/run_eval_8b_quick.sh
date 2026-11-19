@@ -17,10 +17,10 @@ time python -u -m r3d.pipeline.scripts.generate_responses \
     --model qwen3-vl-8b \
     --hf-model Qwen/Qwen3-VL-8B-Instruct \
     --backend vllm \
-    --require-tracked-objects \
     --no-images \
     --data-parallel-size 1 \
     --concurrency 1 \
+    --max-model-len 131072 \
     --max-annotations 100 \
     --output-dir "$OUTPUT_DIR"
 

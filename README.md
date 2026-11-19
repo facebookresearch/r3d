@@ -9,7 +9,7 @@ This repository includes:
 - **R3D**: a system for 3D spatial reasoning with tool calling.
 
 The repository contains:
-- Setup scripts for the 3,033 annotations of R3D-Bench.
+- Setup scripts for the 2,950 annotations of R3D-Bench.
 - Code used for generating R3D-Bench.
 - Code used for evaluating on R3D-Bench.
 
@@ -21,7 +21,7 @@ The repository contains:
   - [Obtain ADT Sequences](#obtain-adt-sequences)
   - [Extract Frames](#extract-frames)
 - [Quick Start - Running Your Model On R3D-Bench](#quick-start---running-your-model-on-r3d-bench)
-  - [Standard VLM (RGB Only)](#standard-vlm-rgb-baseline)
+  - [Standard VLM (RGB Only)](#standard-vlm-rgb-only)
   - [Dataset Tutorial](#dataset-tutorial)
 - [Running R3D Evaluation on R3D-Bench](#running-r3d-evaluation-on-r3d-bench)
   - [Step 1: Build Scene](#step-1-build-scene)
@@ -53,9 +53,10 @@ Requirements: Python 3.10+, CUDA-capable GPU.
 
 The R3D-Bench data lives on Hugging Face Hub at [`facebook/r3d-bench`](https://huggingface.co/datasets/facebook/r3d-bench) as a Parquet, split into these configs:
 
-- `qa_annotations` — the 3,033 Q&A annotations in R3D-Bench
+- `qa_annotations` — the 2,950 Q&A annotations in R3D-Bench
 - `segmentations` — per-object per-video SAM3 segmentation masks used in evaluations
 - `meshes` — per-object 3D reconstructed meshes from SAM3D, used in evaluations
+- `gt_bboxes` — optional ground-truth oriented-box trajectories from ADT that the reference answers were derived from (for debugging; evaluations do not use them)
 
 Every script takes a `--dataset` flag (default `facebook/r3d-bench`) and fetches only the configs it needs on first use via `huggingface_hub`, caching them under `$HF_HOME`. To use a local mirror or fork instead, pass `--dataset <org>/<repo>`.
 
@@ -105,7 +106,7 @@ This produces:
 
 This command is primarily for demonstration purposes. RGB-only models do not usually perform very well on R3D-Bench, but we include this example command so that researchers can modify it for their own purposes.
 
-To run a standard VLM (RGB-only, no depth inputs) on R3D-Bench, use `r3d.scripts.rgb_overlay_evals`. Add `--overlay` to additionally paint the referenced objects' SAM3 masks onto the frames, and `--score` to score immediately after generation. `--max-frames` caps how many frames from each question's window are sent to the model. In our paper evaluations we do not limit the frames sent to models. In this example command, we set the value to 16 for computational efficiency. Removing the flag will result in all frames being set to the model. You may need to set `--max-model-len` accordingly. Here is the command:
+To run a standard VLM (RGB-only, no depth inputs) on R3D-Bench, use `r3d.scripts.rgb_overlay_evals`. Add `--overlay` to additionally paint the referenced objects' SAM3 masks onto the frames, and `--score` to score immediately after generation. `--max-frames` caps how many frames from each question's window are sent to the model. In our paper evaluations we do not limit the frames sent to models. In this example command, we set the value to 16 for computational efficiency. Removing the flag will result in all frames being sent to the model. You may need to set `--max-model-len` accordingly. Here is the command:
 
 ```bash
 python -m r3d.scripts.rgb_overlay_evals \
@@ -120,29 +121,33 @@ python -m r3d.scripts.rgb_overlay_evals \
 
 Modify this evaluation command to run your own VLM that accepts depth and pose as input.
 
-For reference, the example above produces the following on the full 3,033-annotation R3D-Bench. Multiple-choice types report mean accuracy; distance and volume types report Mean Relative Accuracy (MRA). OVERALL is the mean over all 15 question types. All values are percentages; higher is better.
+The 16-frame example above is not a paper configuration. The paper's RGB rows (Table 2) send every frame in the question's window with SAM3 overlays and count parse failures as incorrect.
+
+For reference, the example above produces the following on the 2,950 R3D-Bench questions (6 parse failures, counted as wrong). Multiple-choice types report mean accuracy; distance and volume types report Mean Relative Accuracy (MRA). OVERALL is the mean over all 15 question types. All values are percentages; higher is better.
 
 | Question type | Metric | RGB 8B |
 |---|:---:|---:|
-| `gap_fit` | Acc | 67.7 |
-| `nearest_from_set` | Acc | 61.0 |
-| `top_higher` | Acc | 62.9 |
-| `which_taller` | Acc | 76.2 |
-| `which_longer_dim` | Acc | 68.9 |
-| **Multiple-choice avg** | Acc | **67.3** |
-| `global_how_far` | MRA | 46.9 |
-| `global_how_far_from_me` | MRA | 36.2 |
-| `global_how_long` | MRA | 55.1 |
-| `how_much_taller` | MRA | 33.1 |
-| `how_much_longer_dim` | MRA | 36.3 |
-| `total_fly_distance` | MRA | 20.5 |
-| `total_walk_distance` | MRA | 17.9 |
-| **Distance avg** | MRA | **35.1** |
-| `volume_estimation` | MRA | 14.4 |
+| `gap_fit` | Acc | 62.3 |
+| `nearest_from_set` | Acc | 55.9 |
+| `top_higher` | Acc | 65.4 |
+| `which_taller` | Acc | 68.4 |
+| `which_longer_dim` | Acc | 64.4 |
+| **Multiple-choice avg** | Acc | **63.3** |
+| `global_how_far` | MRA | 39.8 |
+| `global_how_far_from_me` | MRA | 28.8 |
+| `global_how_long` | MRA | 54.4 |
+| `how_much_taller` | MRA | 29.6 |
+| `how_much_longer_dim` | MRA | 37.8 |
+| `total_fly_distance` | MRA | 21.5 |
+| `total_walk_distance` | MRA | 16.9 |
+| **Distance avg** | MRA | **32.7** |
+| `volume_estimation` | MRA | 22.0 |
 | `pour_leftover` | MRA | 0.0 |
-| `pour_room_left` | MRA | 3.6 |
-| **Volume avg** | MRA | **6.0** |
-| **OVERALL (all 15)** | — | **40.0** |
+| `pour_room_left` | MRA | 3.5 |
+| **Volume avg** | MRA | **8.5** |
+| **OVERALL (all 15)** | — | **38.1** |
+
+vLLM's batching makes greedy decoding slightly nondeterministic: a second run of the same command matched 2,701 of the 2,950 responses exactly and also scored 38.1 overall.
 
 ### Dataset Tutorial
 
@@ -188,6 +193,20 @@ This produces:
 - `scene/scene.db` — per-object 3D bounding boxes, visibility, and coverage
 - `scene/object_points.db` — per-object 3D point clouds
 
+#### Scene-construction ablations
+
+The scene-construction ablation of the paper (Appendix, Tables 12 and 13) uses these `build_scene` flags, followed by `generate_responses` with the `--volume-method` shown:
+
+| Boxes | Vote | KNN | Volume | `build_scene` flags | `generate_responses` flag |
+|---|:---:|:---:|---|---|---|
+| First frame | | | Box | `--box-mode first_frame --no-multiview-vote --no-knn` | `--volume-method bbox` |
+| Median | | | Box | `--box-mode median --no-multiview-vote --no-knn` | `--volume-method bbox` |
+| Fused | | | Box | `--no-multiview-vote --no-knn` | `--volume-method bbox` |
+| Fused | ✓ | | Box | `--no-knn` | `--volume-method bbox` |
+| Fused | | ✓ | Box | `--no-multiview-vote` | `--volume-method bbox` |
+| Fused | ✓ | ✓ | Box | (none) | `--volume-method bbox` |
+| Fused | ✓ | ✓ | SAM3D | (none) | (none; `mesh_rescaled` is the default) |
+
 ### Step 2: Generate Responses
 
 Run a VLM on R3D-Bench with vLLM, which provides fast inference with automatic KV cache reuse across tool-use turns.
@@ -201,29 +220,28 @@ python -m r3d.pipeline.scripts.generate_responses \
     --model qwen3-vl-8b \
     --hf-model Qwen/Qwen3-VL-8B-Instruct \
     --backend vllm \
-    --require-tracked-objects \
     --no-images \
     --data-parallel-size 8 \
     --concurrency 8 \
+    --max-model-len 131072 \
     --output-dir /tmp/r3d/responses_8b
 ```
 
 ```bash
-# Qwen3.6-35B on 4 GPUs (4-way data parallel)
+# Qwen3.6-35B on 2 GPUs (tensor parallel), the configuration used for the paper results
 # Note: set CUDA_VISIBLE_DEVICES to control which GPUs are used.
-# The 35B model requires --max-model-len to fit in GPU memory.
-CUDA_VISIBLE_DEVICES=0,1,2,3 python -m r3d.pipeline.scripts.generate_responses \
+CUDA_VISIBLE_DEVICES=0,1 python -m r3d.pipeline.scripts.generate_responses \
     --dataset facebook/r3d-bench \
     --scene-db $ASSETS/scene/scene.db \
     --frames-dir $ASSETS/frames \
     --model qwen36-35b \
     --hf-model Qwen/Qwen3.6-35B-A3B \
     --backend vllm \
-    --require-tracked-objects \
     --no-images \
-    --data-parallel-size 4 \
+    --data-parallel-size 1 \
+    --tensor-parallel-size 2 \
     --concurrency 32 \
-    --max-model-len 24576 \
+    --max-model-len 131072 \
     --output-dir /tmp/r3d/responses_35b
 ```
 
@@ -235,13 +253,15 @@ Score the responses and produce per-question-type metrics:
 python -m r3d.pipeline.scripts.generate_scores \
     --dataset facebook/r3d-bench \
     --responses-db /tmp/r3d/responses_8b/responses.db \
-    --output-dir /tmp/r3d/scores
+    --output-dir /tmp/r3d/scores_8b
 ```
 
 This produces:
 - `scores.db` — per-annotation scores
 - `eval_report.json` — aggregate and per-sequence metrics
 - `eval_summary.txt` — human-readable summary
+
+Unparseable answers (parse failures) count as wrong by default, as in the paper's main results. Add `--exclude-parse-failures` to exclude them from the metrics instead.
 
 ### Step 4: Generate Eval Table
 
@@ -257,35 +277,35 @@ python -m r3d.pipeline.scripts.generate_eval_table \
 
 This produces a table with per-category accuracy (MC), MRA (distance/volume), within-threshold accuracy, and mean % error, plus grouped averages and overall scores.
 
-Expected per-question-type results on the full 3,033-annotation R3D-Bench (R3D 8B = `Qwen3-VL-8B-Instruct`, R3D 35B = `Qwen3.6-35B-A3B`). Multiple-choice types report **mean accuracy**; distance and volume types report **Mean Relative Accuracy (MRA)**. OVERALL is the mean over all 15 question types. All values are percentages; higher is better.
+Expected per-question-type results on the 2,950 questions of R3D-Bench (R3D 8B = `Qwen3-VL-8B-Instruct`, R3D 35B = `Qwen3.6-35B-A3B`), produced with this code (vLLM, `--no-images`, `--max-model-len 131072`; 8B on one GPU, 35B with tensor parallel 2) and scored with the default protocol (parse failures counted as wrong), as in the paper's main results. With `--exclude-parse-failures`, OVERALL is 52.5 (8B) and 60.5 (35B). Multiple-choice types report **mean accuracy**; distance and volume types report **Mean Relative Accuracy (MRA)**. OVERALL is the mean over all 15 question types. All values are percentages; higher is better.
 
 | Question type | Metric | R3D 8B | R3D 35B |
 |---|:---:|---:|---:|
-| `gap_fit` | Acc | 88.7 | 98.4 |
-| `nearest_from_set` | Acc | 82.3 | 95.6 |
-| `top_higher` | Acc | 71.4 | 80.4 |
-| `which_taller` | Acc | 89.8 | 92.0 |
-| `which_longer_dim` | Acc | 94.7 | 94.7 |
-| **Multiple-choice avg** | Acc | **85.4** | **92.2** |
-| `global_how_far` | MRA | 89.1 | 89.5 |
-| `global_how_far_from_me` | MRA | 64.8 | 95.1 |
-| `global_how_long` | MRA | 79.3 | 82.4 |
-| `how_much_taller` | MRA | 66.2 | 68.4 |
-| `how_much_longer_dim` | MRA | 50.7 | 56.6 |
-| `total_fly_distance` | MRA | 32.9 | 69.4 |
-| `total_walk_distance` | MRA | 14.1 | 37.0 |
-| **Distance avg** | MRA | **56.7** | **71.2** |
-| `volume_estimation` | MRA | 46.4 | 47.3 |
-| `pour_leftover` | MRA | 33.3 | 32.6 |
-| `pour_room_left` | MRA | 35.5 | 34.5 |
-| **Volume avg** | MRA | **38.4** | **38.1** |
-| **OVERALL (all 15)** | — | **62.6** | **71.6** |
+| `gap_fit` | Acc | 70.5 | 80.3 |
+| `nearest_from_set` | Acc | 62.4 | 79.0 |
+| `top_higher` | Acc | 57.6 | 75.6 |
+| `which_taller` | Acc | 68.0 | 80.4 |
+| `which_longer_dim` | Acc | 68.0 | 75.6 |
+| **Multiple-choice avg** | Acc | **65.3** | **78.2** |
+| `global_how_far` | MRA | 58.1 | 55.6 |
+| `global_how_far_from_me` | MRA | 54.4 | 74.4 |
+| `global_how_long` | MRA | 59.0 | 62.9 |
+| `how_much_taller` | MRA | 48.6 | 52.6 |
+| `how_much_longer_dim` | MRA | 38.7 | 41.1 |
+| `total_fly_distance` | MRA | 35.2 | 51.9 |
+| `total_walk_distance` | MRA | 16.5 | 32.1 |
+| **Distance avg** | MRA | **44.4** | **53.0** |
+| `volume_estimation` | MRA | 34.1 | 39.3 |
+| `pour_leftover` | MRA | 20.8 | 25.1 |
+| `pour_room_left` | MRA | 24.4 | 23.3 |
+| **Volume avg** | MRA | **26.4** | **29.2** |
+| **OVERALL (all 15)** | — | **47.8** | **56.6** |
 
-Typical run-to-run variance on the aggregate metrics is ~0.5%.
+The paper's Table 2 rows were generated with the Hugging Face transformers backend (`--backend hf`, greedy) on GB200 GPUs and score 47.6 (8B) and 55.6 (35B). Scoring those responses with this code reproduces them exactly, and tool outputs are identical wherever the two runs make the same call. The vLLM numbers above differ because the backend's numerics take greedy decoding down different paths; with vLLM, 35B reruns are bit-identical and 8B reruns vary by about 0.6.
 
 ## Generating Additional Samples
 
-Most users do not need this — R3D-Bench is published on Hugging Face and downloaded automatically. This section is for generating additional Q&A samples (e.g. new sequences or more questions per type) using the same production pipeline. Note that this does not include filtering for segmentation quality or question difficulty described in Section 3.2 of our paper.
+Most users do not need this — R3D-Bench is published on Hugging Face and downloaded automatically. This section is for generating additional Q&A samples (e.g. new sequences or more questions per type) using the same production pipeline. Note that this does not include the question balancing and filtering steps described in Appendix B of our paper.
 
 ### Obtain ADT Object Meshes
 
@@ -332,7 +352,7 @@ The [`scripts/`](scripts/) directory wraps the commands used to build and evalua
 | `generate_dataset.sh` | Generate Q&A annotations with production filters (static objects, pointing disambiguation, min-fov 6.0, min-visibility 0.5, 100/type) |
 | `run_build_scene.sh` | Build the 3D scene (depth-lift + gravity-aligned OBB) |
 | `run_eval_8b_full.sh` | R3D eval — Qwen3-VL-8B, `tool_use` + `mesh_rescaled`, no images, DP=8 |
-| `run_eval_35b.sh` | R3D eval — Qwen3.6-35B-A3B, DP=4 |
+| `run_eval_35b.sh` | R3D eval — Qwen3.6-35B-A3B, TP=2 |
 | `run_rgb_baseline.sh` | RGB baseline — Qwen3-VL-8B, images + SAM3 mask overlay |
 | `run_eval_8b_quick.sh` | 100-annotation smoke test (not a paper number) |
 | `run_tests.sh` | Unit tests |
@@ -347,16 +367,25 @@ The [`scripts/`](scripts/) directory wraps the commands used to build and evalua
 | `--data-parallel-size N` | Number of model replicas (vLLM only) |
 | `--max-model-len N` | Maximum context length in tokens (vLLM only, required for large models) |
 | `--max-annotations N` | Limit annotations for quick testing |
-| `--require-tracked-objects` | Skip annotations with untracked objects |
-| `--no-images` | Text-only (no frames sent to model). Useful for rapid evaluation when using tools. |
+| `--require-tracked-objects` | Skip annotations with untracked objects (not used for the paper results) |
+| `--no-images` | Text-only (no frames sent to model). Required for tool-use runs, as in the paper. |
 | `--concurrency N` | Concurrent annotation processing (default: 8) |
 | `--question-types TYPE [TYPE ...]` | Restrict to specific question types |
+| `--strategy tool_use\|scene_text` | `tool_use` (default): R3D tool calling. `scene_text`: no-tools ablation; every object's tool outputs are given as a text table in one prompt, and per-question token counts go to `prompt_stats.jsonl` |
+| `--cubify-db PATH` | CuTR baseline: object boxes and positions come from the CuTR detector's `cubify.db` instead of the scene (use with `--volume-method bbox`) |
+| `--no-cutr-fallback` | With `--cubify-db`: objects CuTR did not detect return `Error: object not detected` instead of the scene box |
+| `--volume-method mesh_rescaled\|bbox` | `get_object_volume` backend: `mesh_rescaled` (default): SAM3D mesh cavity volume rescaled to the box. `bbox`: box volume, no SAM3D |
+| `--tool-backend scene\|gt_oracle` | `scene` (default): tools read the reconstructed scene. `gt_oracle`: the same tools return ADT ground truth from `--gt-oracle-db` |
+| `--tensor-parallel-size N` | GPUs per model replica (vLLM only) |
+| `--annotation-ids PATH` | Restrict the run to the annotation IDs in a file (one per line) |
+| `--exclude-parse-failures` | `generate_scores`: exclude parse failures from the metrics instead of counting them as wrong (score 0, the default, as in the paper's main results) |
 
 ## Evaluation Entry Points
 
 | Entry point | Description |
 |-------------|-------------|
-| `r3d.pipeline.scripts.generate_responses` | R3D tool-use: multi-turn, model calls spatial tools (get_distance, get_position, get_volume, etc.) over the reconstructed 3D scene |
+| `r3d.pipeline.scripts.generate_responses` | R3D tool-use: multi-turn, model calls spatial tools (get_distance, get_position, get_object_volume, etc.) over the reconstructed 3D scene |
+| `r3d.pipeline.scripts.export_scene_text_prompts` | Writes the `scene_text` prompts (with token counts) to JSONL for offline inference; `--validate-responses-db` checks every tool result logged by a tool-use run against the table |
 | `r3d.scripts.rgb_overlay_evals` | RGB baseline: single-turn, model sees multi-frame images, optionally with `--overlay` segmentation masks |
 
 ## License

@@ -1,7 +1,7 @@
 numpy>=1.24
 opencv-python>=4.8
 scipy>=1.11
-trimesh>=4.0
+trimesh==4.11.2
 Pillow>=10.0
 pydantic>=2.0
 projectaria-tools>=1.5

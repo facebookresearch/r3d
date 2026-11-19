@@ -1,9 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
-"""Annotation filtering for eval pipelines.
-
-Shared by generate_responses.py and eval_volume.py.
-"""
+"""Annotation filtering for eval pipelines."""
 
 from __future__ import annotations
 
@@ -14,6 +11,7 @@ from typing import Any
 from r3d.data_gen.utils.annotation_schema import Annotation
 from r3d.pipeline.eval.config import EvalConfig
 from r3d.pipeline.scene_state import SceneState
+from r3d.pipeline.stores.base import CubifyStore
 from r3d.pipeline.stores.sqlite_store import SQLiteSceneStore
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -24,12 +22,18 @@ def get_scene_state(
     scene_store: SQLiteSceneStore,
     sequence_id: str,
     mesh_store: Any = None,
+    volume_method: str = "mesh_rescaled",
+    cubify_store: CubifyStore | None = None,
+    allow_cutr_fallback: bool = True,
 ) -> SceneState:
     if sequence_id not in cache:
         cache[sequence_id] = SceneState(
             scene_store,
             sequence_id,
             mesh_store=mesh_store,
+            volume_method=volume_method,
+            cubify_store=cubify_store,
+            allow_cutr_fallback=allow_cutr_fallback,
         )
     return cache[sequence_id]
 

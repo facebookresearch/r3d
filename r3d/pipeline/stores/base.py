@@ -126,11 +126,7 @@ class ObjectPoints(BaseModel):
 
 
 class FrameStore(ABC):
-    """Stores frame metadata and paths to RGB/depth files.
-
-    Writer: Frame capture process.
-    Readers: SAM3, Track builder.
-    """
+    """Stores frame metadata and paths to RGB/depth files."""
 
     @abstractmethod
     def write_frame(
@@ -165,11 +161,7 @@ class FrameStore(ABC):
 
 
 class SegmentationStore(ABC):
-    """Stores per-(frame, query, object) segmentation results.
-
-    Writer: SAM3 process.
-    Readers: Orchestrator, Scene builder.
-    """
+    """Stores per-(frame, query, object) segmentation results."""
 
     @abstractmethod
     def register_query(
@@ -217,11 +209,7 @@ class SegmentationStore(ABC):
 
 
 class SceneStore(ABC):
-    """Stores the compiled scene representation.
-
-    Writer: Scene builder.
-    Reader: LLM query process.
-    """
+    """Stores the compiled scene representation."""
 
     @abstractmethod
     def delete_sequence(self, sequence_id: str) -> None:
@@ -274,11 +262,7 @@ class SceneStore(ABC):
 
 
 class AnnotationStore(ABC):
-    """Stores R3D annotations (annotations.db).
-
-    Writer: generate_qa.py
-    Readers: eval.py, filter_annotations.py, run_segmentation.py
-    """
+    """Stores R3D annotations (annotations.db)."""
 
     @abstractmethod
     def write_annotation(self, annotation: Annotation) -> None: ...
@@ -334,12 +318,35 @@ class AnnotationStore(ABC):
     def close(self) -> None: ...
 
 
-class MeshStore(ABC):
-    """Stores per-object single-view mesh reconstructions (mesh.db).
+class CubifyObjectResult(BaseModel):
+    """Aggregated CuTR (Cubify Transformer) box for an object across frames."""
 
-    Writer: run_sam3d.py
-    Reader: generate_responses.py / tool_use.py (mesh volume tool).
-    """
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
+
+    sequence_id: str
+    object_id: int
+    query_name: str
+    obb_aabb: np.ndarray
+    obb_transform: np.ndarray
+    position: np.ndarray
+    num_detections: int
+    aggregation_method: str
+
+
+class CubifyStore(ABC):
+    """Per-object CuTR boxes (cubify.db), read by SceneState for the CuTR baseline."""
+
+    @abstractmethod
+    def get_object_result(
+        self, sequence_id: str, object_id: int
+    ) -> CubifyObjectResult | None: ...
+
+    @abstractmethod
+    def close(self) -> None: ...
+
+
+class MeshStore(ABC):
+    """Stores per-object single-view mesh reconstructions (mesh.db)."""
 
     @abstractmethod
     def write_mesh(self, mesh: ObjectMesh) -> None: ...
@@ -361,11 +368,7 @@ class MeshStore(ABC):
 
 
 class ObjectPointsStore(ABC):
-    """Stores per-object 3D point sets (e.g. from depth back-projection).
-
-    Writer: depth back-projection / track builder.
-    Reader: SceneState (volume estimation).
-    """
+    """Stores per-object 3D point sets (e.g. from depth back-projection)."""
 
     @abstractmethod
     def write_points(

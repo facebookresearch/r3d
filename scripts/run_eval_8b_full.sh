@@ -17,10 +17,10 @@ time python -u -m r3d.pipeline.scripts.generate_responses \
     --model qwen3-vl-8b \
     --hf-model Qwen/Qwen3-VL-8B-Instruct \
     --backend vllm \
-    --require-tracked-objects \
     --no-images \
     --data-parallel-size 8 \
     --concurrency 8 \
+    --max-model-len 131072 \
     --output-dir "$OUTPUT_DIR"
 
 echo "=== Generate Scores ==="

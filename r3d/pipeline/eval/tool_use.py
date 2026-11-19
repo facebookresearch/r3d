@@ -9,9 +9,10 @@ import typing
 import numpy as np
 from r3d.data_gen.utils.annotation_schema import Annotation
 from r3d.pipeline import volume as volume_mod
+from r3d.pipeline.eval.gt_oracle import format_oracle_volume, GTOracle, OracleObject
 from r3d.pipeline.eval.prompts import ANSWER_FORMAT_INSTRUCTIONS
 from r3d.pipeline.eval.vlm import image_to_base64, VLMClient
-from r3d.pipeline.scene_state import SceneState
+from r3d.pipeline.scene_state import ObjectNotDetectedError, SceneState
 from r3d.pipeline.stores.base import ObjectReconstruction
 from r3d.pipeline.stores.sqlite_store import SQLiteFrameStore
 from r3d.types import ChatRole, Message, MessageAttachment, MessageAttachmentType
@@ -88,6 +89,11 @@ def _get_camera_position(
     return T_scene_device[:3, 3].copy()
 
 
+def _format_position(pos: np.ndarray) -> str:
+    """Format a scene (Y-up) position as (x, y, z) with z up."""
+    return f"({pos[0]:.2f}, {pos[2]:.2f}, {pos[1]:.2f}) meters"
+
+
 def _parse_args(raw: str) -> list[str]:
     return [a.strip().strip("\"'") for a in raw.split(",") if a.strip()]
 
@@ -134,7 +140,7 @@ def _tool_get_position(args: list[str], scene: SceneState) -> str:
     pos = scene.get_object_position(oid)
     if pos is None:
         return "Error: object has no reconstruction."
-    return f"({pos[0]:.2f}, {pos[2]:.2f}, {pos[1]:.2f}) meters"
+    return _format_position(pos)
 
 
 def _tool_get_distance_from_me(
@@ -182,14 +188,8 @@ def _tool_get_object_volume(
         return err
     est_vol = scene.get_object_volume(oid)
     if est_vol is None:
-        return "Error: object has no reconstruction."
-    liters = est_vol * 1000
-    recon = scene.get_best_reconstruction(oid)
-    obb_vol = volume_mod.bbox_volume(recon.obb_aabb) if recon is not None else est_vol
-    return (
-        f"estimated_volume={est_vol:.6f} cubic meters ({liters:.3f} liters), "
-        f"bounding_box_volume={obb_vol:.6f} cubic meters"
-    )
+        return volume_mod.format_volume_error(scene.volume_method, oid)
+    return volume_mod.format_volume_result(est_vol, scene.volume_method)
 
 
 def _tool_list_objects(scene: SceneState, start_ns: int, end_ns: int) -> str:
@@ -203,6 +203,90 @@ def _tool_list_objects(scene: SceneState, start_ns: int, end_ns: int) -> str:
     return f"Tracked objects ({len(lines)}):\n" + "\n".join(lines)
 
 
+def _resolve_oracle(
+    scene: SceneState, oracle: GTOracle, sequence_id: str, raw: str
+) -> OracleObject | str:
+    """Resolve a scene object ID to its GT oracle object, or an error string."""
+    oid, err = _resolve_id(scene, raw)
+    if err:
+        return err
+    name = scene.get_object_query_name(oid)
+    if name is None:
+        raise RuntimeError(f"Object {oid} has no query_name")
+    return oracle.get_object(sequence_id, name)
+
+
+def _oracle_get_distance(
+    args: list[str], scene: SceneState, oracle: GTOracle, sequence_id: str
+) -> str:
+    if len(args) < 2:
+        return "Error: get_distance requires two object IDs."
+    first = _resolve_oracle(scene, oracle, sequence_id, args[0])
+    if isinstance(first, str):
+        return first
+    second = _resolve_oracle(scene, oracle, sequence_id, args[1])
+    if isinstance(second, str):
+        return second
+    return f"{first.tool_box.shortest_distance_to_bbox(second.tool_box):.2f} meters"
+
+
+def _oracle_single_object_tool(
+    tool_name: str,
+    args: list[str],
+    scene: SceneState,
+    oracle: GTOracle,
+    sequence_id: str,
+    timestamp_ns_end: int,
+) -> str:
+    if len(args) < 1:
+        return f"Error: {tool_name} requires an object ID."
+    obj = _resolve_oracle(scene, oracle, sequence_id, args[0])
+    if isinstance(obj, str):
+        return obj
+    if tool_name == "get_position":
+        return _format_position(obj.position)
+    if tool_name == "get_distance_from_me":
+        me = oracle.get_device_position(sequence_id, timestamp_ns_end)
+        closest = obj.tool_box.closest_point_to(me)
+        return f"{float(np.linalg.norm(me - closest)):.2f} meters"
+    if tool_name == "get_object_size":
+        w, h, d = obj.tool_box.dimensions
+        return f"width={w:.2f}m, height={h:.2f}m, depth={d:.2f}m"
+    if tool_name == "get_object_volume":
+        return format_oracle_volume(obj, int(args[0]), scene.volume_method)
+    raise RuntimeError(f"Not a single-object tool: {tool_name}")
+
+
+_ORACLE_SINGLE_OBJECT_TOOLS: frozenset[str] = frozenset(
+    {"get_position", "get_distance_from_me", "get_object_size", "get_object_volume"}
+)
+
+
+def execute_oracle_tool(
+    tool_name: str,
+    args: list[str],
+    scene: SceneState,
+    oracle: GTOracle,
+    sequence_id: str,
+    timestamp_ns_start: int,
+    timestamp_ns_end: int,
+) -> str:
+    """Same tools, arguments and output strings as the scene backend, GT values."""
+    if tool_name == "list_objects":
+        return _tool_list_objects(scene, timestamp_ns_start, timestamp_ns_end)
+    if tool_name == "get_distance":
+        return _oracle_get_distance(args, scene, oracle, sequence_id)
+    if tool_name == "get_my_position":
+        return _format_position(
+            oracle.get_device_position(sequence_id, timestamp_ns_end)
+        )
+    if tool_name in _ORACLE_SINGLE_OBJECT_TOOLS:
+        return _oracle_single_object_tool(
+            tool_name, args, scene, oracle, sequence_id, timestamp_ns_end
+        )
+    return f"Error: unknown tool '{tool_name}'. Call list_objects() to see available tools."
+
+
 def _execute_tool(
     tool_name: str,
     args: list[str],
@@ -211,14 +295,50 @@ def _execute_tool(
     sequence_id: str,
     timestamp_ns_start: int,
     timestamp_ns_end: int,
+    oracle: GTOracle | None = None,
 ) -> str:
+    try:
+        return _dispatch_tool(
+            tool_name,
+            args,
+            scene,
+            frame_store,
+            sequence_id,
+            timestamp_ns_start,
+            timestamp_ns_end,
+            oracle,
+        )
+    except ObjectNotDetectedError as e:
+        return f"Error: object not detected: {e}"
+
+
+def _dispatch_tool(
+    tool_name: str,
+    args: list[str],
+    scene: SceneState,
+    frame_store: SQLiteFrameStore,
+    sequence_id: str,
+    timestamp_ns_start: int,
+    timestamp_ns_end: int,
+    oracle: GTOracle | None,
+) -> str:
+    if oracle is not None:
+        return execute_oracle_tool(
+            tool_name,
+            args,
+            scene,
+            oracle,
+            sequence_id,
+            timestamp_ns_start,
+            timestamp_ns_end,
+        )
     if tool_name == "get_distance":
         return _tool_get_distance(args, scene)
     if tool_name == "get_position":
         return _tool_get_position(args, scene)
     if tool_name == "get_my_position":
         pos = _get_camera_position(frame_store, sequence_id, timestamp_ns_end)
-        return f"({pos[0]:.2f}, {pos[2]:.2f}, {pos[1]:.2f}) meters"
+        return _format_position(pos)
     if tool_name == "get_distance_from_me":
         return _tool_get_distance_from_me(
             args, scene, frame_store, sequence_id, timestamp_ns_end
@@ -273,6 +393,7 @@ def _handle_tool_turn(
     timestamp_ns_start: int,
     timestamp_ns_end: int,
     log_fn: typing.Callable[[str], None],
+    oracle: GTOracle | None,
 ) -> str | None:
     match = _TOOL_CALL_PATTERN.search(response)
     if match is None:
@@ -291,6 +412,7 @@ def _handle_tool_turn(
         sequence_id,
         timestamp_ns_start,
         timestamp_ns_end,
+        oracle=oracle,
     )
     log_fn(f"    [turn {turn + 1}] Result: {result}")
     tool_log.append({"tool": tool_name, "args": args, "result": result})
@@ -317,6 +439,7 @@ def _run_tool_loop(
     timestamp_ns_end: int,
     max_turns: int,
     log_fn: typing.Callable[[str], None],
+    oracle: GTOracle | None,
 ) -> tuple[str, list[dict]]:
     tool_log: list[dict] = []
     history_text: list[str] = []
@@ -341,6 +464,7 @@ def _run_tool_loop(
             timestamp_ns_start,
             timestamp_ns_end,
             log_fn,
+            oracle,
         )
         if new_response is None:
             break
@@ -359,6 +483,7 @@ def run_tool_use(
     model: str,
     max_turns: int = 10,
     log_lines: list[str] | None = None,
+    oracle: GTOracle | None = None,
 ) -> tuple[str, list[dict]]:
     if log_lines is not None:
         log_fn = log_lines.append
@@ -378,4 +503,5 @@ def run_tool_use(
         timestamp_ns_end=annotation.query_layer.query_timestamp_ns_end,
         max_turns=max_turns,
         log_fn=log_fn,
+        oracle=oracle,
     )

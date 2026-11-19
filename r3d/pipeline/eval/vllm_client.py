@@ -52,6 +52,7 @@ def _worker_loop(
     gpu_memory_utilization: float,
     max_model_len: int | None,
     max_images_per_prompt: int | None,
+    tensor_parallel_size: int,
     request_queue: mp.Queue,
     response_queue: mp.Queue,
 ) -> None:
@@ -64,6 +65,7 @@ def _worker_loop(
         "trust_remote_code": True,
         "gpu_memory_utilization": gpu_memory_utilization,
         "enable_prefix_caching": True,
+        "tensor_parallel_size": tensor_parallel_size,
     }
     if max_model_len is not None:
         llm_kwargs["max_model_len"] = max_model_len
@@ -85,8 +87,12 @@ def _worker_loop(
             enable_thinking=False,
         )
         params = SamplingParams(temperature=0.0, max_tokens=max_tokens)
-        outputs = llm.generate([_build_generate_request(text, images)], params)
-        response_queue.put((caller_id, outputs[0].outputs[0].text))
+        try:
+            outputs = llm.generate([_build_generate_request(text, images)], params)
+        except Exception as e:
+            response_queue.put((caller_id, None, f"{type(e).__name__}: {e}"))
+            continue
+        response_queue.put((caller_id, outputs[0].outputs[0].text, None))
 
 
 class VLLMClient(VLMClient):
@@ -99,9 +105,13 @@ class VLLMClient(VLMClient):
         max_model_len: int | None = None,
         gpu_memory_utilization: float = 0.9,
         max_images_per_prompt: int | None = None,
+        tensor_parallel_size: int = 1,
     ) -> None:
+        if tensor_parallel_size < 1:
+            raise ValueError(f"tensor_parallel_size must be >= 1: {tensor_parallel_size}")
         self._model_name = model_name
         self._dp_size = data_parallel_size
+        self._tp_size = tensor_parallel_size
         self._max_images_per_prompt = max_images_per_prompt
 
         if data_parallel_size <= 1:
@@ -119,12 +129,13 @@ class VLLMClient(VLMClient):
     ) -> None:
         from vllm import LLM
 
-        logger.info("Loading vLLM model: %s (dp=1)", model_name)
+        logger.info("Loading vLLM model: %s (dp=1, tp=%d)", model_name, self._tp_size)
         kwargs: dict[str, Any] = {
             "model": model_name,
             "trust_remote_code": True,
             "gpu_memory_utilization": gpu_memory_utilization,
             "enable_prefix_caching": True,
+            "tensor_parallel_size": self._tp_size,
         }
         if max_model_len is not None:
             kwargs["max_model_len"] = max_model_len
@@ -147,11 +158,17 @@ class VLLMClient(VLMClient):
             model_name,
             data_parallel_size,
         )
+        tp = self._tp_size
         cuda_env = os.environ.get("CUDA_VISIBLE_DEVICES", "")
         if cuda_env:
-            available_gpus = [int(g) for g in cuda_env.split(",")][:data_parallel_size]
+            available_gpus = [int(g) for g in cuda_env.split(",")]
         else:
-            available_gpus = list(range(data_parallel_size))
+            available_gpus = list(range(data_parallel_size * tp))
+        if len(available_gpus) < data_parallel_size * tp:
+            raise ValueError(
+                f"dp={data_parallel_size} x tp={tp} needs {data_parallel_size * tp} "
+                f"GPUs, CUDA_VISIBLE_DEVICES has {len(available_gpus)}"
+            )
 
         ctx = mp.get_context("spawn")
         self._request_queues: list[mp.Queue] = []
@@ -160,7 +177,7 @@ class VLLMClient(VLMClient):
         self._next_worker = 0
         self._thread_to_worker: dict[int, int] = {}
         self._pending: dict[int, threading.Event] = {}
-        self._results: dict[int, str] = {}
+        self._results: dict[int, tuple[str | None, str | None]] = {}
         self._lock = threading.Lock()
 
         self._dispatcher = threading.Thread(
@@ -168,7 +185,7 @@ class VLLMClient(VLMClient):
         )
 
         for rank in range(data_parallel_size):
-            gpu_ids = [available_gpus[rank]]
+            gpu_ids = available_gpus[rank * tp : (rank + 1) * tp]
             req_q: mp.Queue = ctx.Queue()
             self._request_queues.append(req_q)
 
@@ -181,6 +198,7 @@ class VLLMClient(VLMClient):
                     gpu_memory_utilization,
                     max_model_len,
                     self._max_images_per_prompt,
+                    tp,
                     req_q,
                     self._response_queue,
                 ),
@@ -202,9 +220,9 @@ class VLLMClient(VLMClient):
                 if self._workers is None:
                     break
                 continue
-            caller_id, text = item
+            caller_id, text, error = item
             with self._lock:
-                self._results[caller_id] = text
+                self._results[caller_id] = (text, error)
                 event = self._pending.get(caller_id)
             if event:
                 event.set()
@@ -302,15 +320,7 @@ class VLLMClient(VLMClient):
             enable_thinking=False,
         )
         params = SamplingParams(temperature=0.0, max_tokens=max_tokens)
-        try:
-            outputs = self._llm.generate(
-                [_build_generate_request(text, images)], params
-            )
-        except Exception as e:
-            if "context length" in str(e) or "input tokens" in str(e):
-                logger.warning("Prompt too long, returning empty: %s", e)
-                return ""
-            raise
+        outputs = self._llm.generate([_build_generate_request(text, images)], params)
         return outputs[0].outputs[0].text
 
     def _generate_multi(
@@ -329,9 +339,11 @@ class VLLMClient(VLMClient):
         )
         event.wait()
         with self._lock:
-            result = self._results.pop(caller_id)
+            text, error = self._results.pop(caller_id)
             del self._pending[caller_id]
-        return result
+        if error is not None or text is None:
+            raise RuntimeError(f"vLLM worker {worker_rank} generate failed: {error}")
+        return text
 
     def shutdown(self) -> None:
         if self._workers is None:

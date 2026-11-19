@@ -226,7 +226,7 @@ def demo_depth_lift(
     if not raw:
         logger.info(f"[depth_lift] no points for {object_name}")
         return
-    pts = np.concatenate(raw, axis=0)
+    pts = np.concatenate([c for _, c in raw if len(c)], axis=0)
     pts = _filter_outliers_knn(pts, KNN_K)
     pts = _multiview_consensus_filter(pts, obj_id, sequence_id, frame_store, seg_store)
     pts = _filter_outliers_knn(pts, KNN_K)

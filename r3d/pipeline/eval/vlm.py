@@ -13,18 +13,6 @@ from r3d.utils.viz import draw_bbox_from_mask, track_color
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-RETRYABLE_KEYWORDS: list[str] = [
-    "throttl",
-    "rate limit",
-    "saturated",
-    "overloaded",
-    "temporarily unavailable",
-    "timeout",
-    "connection",
-    "503",
-    "429",
-]
-
 
 class VLMClient(ABC):
     @abstractmethod

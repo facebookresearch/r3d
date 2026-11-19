@@ -13,7 +13,10 @@ import logging
 
 import numpy as np
 from r3d.pipeline import volume
+from r3d.pipeline.eval.config import VOLUME_METHODS
 from r3d.pipeline.stores.base import (
+    CubifyObjectResult,
+    CubifyStore,
     FrameVisibility,
     MeshStore,
     ObjectReconstruction,
@@ -22,6 +25,10 @@ from r3d.pipeline.stores.base import (
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+class ObjectNotDetectedError(RuntimeError):
+    """The CuTR store has no box for an object and R3D fallback is disabled."""
 
 
 class SceneState:
@@ -36,10 +43,20 @@ class SceneState:
         store: SceneStore,
         sequence_id: str,
         mesh_store: MeshStore | None = None,
+        volume_method: str = "mesh_rescaled",
+        cubify_store: CubifyStore | None = None,
+        allow_cutr_fallback: bool = True,
     ) -> None:
+        if volume_method not in VOLUME_METHODS:
+            raise ValueError(f"Unknown volume_method: {volume_method}")
+        if not allow_cutr_fallback and cubify_store is None:
+            raise ValueError("allow_cutr_fallback=False requires a cubify_store")
+        self._cubify_store = cubify_store
+        self._allow_cutr_fallback = allow_cutr_fallback
         self._store = store
         self._sequence_id = sequence_id
         self._mesh_store = mesh_store
+        self._volume_method = volume_method
         self._object_map: dict[int, SceneObject] | None = None
 
     def _get_object_map(self) -> dict[int, SceneObject]:
@@ -53,6 +70,10 @@ class SceneState:
     @property
     def sequence_id(self) -> str:
         return self._sequence_id
+
+    @property
+    def volume_method(self) -> str:
+        return self._volume_method
 
     def get_object_ids(self) -> list[int]:
         return list(self._get_object_map().keys())
@@ -73,7 +94,28 @@ class SceneState:
         Policies:
             best_psnr: highest PSNR (default)
             latest: most recently created
+
+        With a cubify_store (the CuTR baseline), the object's box and position
+        come from CuTR. If CuTR has no box for the object, the scene box is
+        returned, or ObjectNotDetectedError is raised when allow_cutr_fallback
+        is False.
         """
+        recon = self._get_scene_reconstruction(object_id, policy)
+        if self._cubify_store is None:
+            return recon
+        cubify = self._cubify_store.get_object_result(self._sequence_id, object_id)
+        if cubify is None:
+            if not self._allow_cutr_fallback:
+                raise ObjectNotDetectedError(
+                    f"object {object_id} was not detected by the 3D box detector "
+                    f"(CuTR); no geometry is available for it."
+                )
+            return recon
+        return _merge_cubify_box(recon, cubify)
+
+    def _get_scene_reconstruction(
+        self, object_id: int, policy: str
+    ) -> ObjectReconstruction | None:
         recons = self._store.get_reconstructions(self._sequence_id, object_id)
         if not recons:
             return None
@@ -154,7 +196,8 @@ class SceneState:
         """Get estimated object volume in cubic meters.
 
         Volume is the SAM3D mesh cavity (functional) volume rescaled to match
-        the object's fitted OBB.
+        the object's fitted OBB, or the OBB box volume when volume_method is
+        "bbox" (the no-SAM3D ablation).
 
         Returns:
             Volume in cubic meters, or None if the object has no
@@ -163,6 +206,8 @@ class SceneState:
         recon = self.get_best_reconstruction(object_id)
         if recon is None:
             return None
+        if self._volume_method == "bbox":
+            return volume.bbox_volume(recon.obb_aabb)
 
         if self._mesh_store is None:
             raise RuntimeError("MeshStore required for volume estimation")
@@ -173,3 +218,27 @@ class SceneState:
         if mesh_path is None:
             return None
         return volume.mesh_rescaled_volume(mesh_path, recon.obb_aabb)
+
+
+def _merge_cubify_box(
+    recon: ObjectReconstruction | None, cubify: CubifyObjectResult
+) -> ObjectReconstruction:
+    """The scene reconstruction with its box and position replaced by CuTR's."""
+    box = {
+        "obb_aabb": cubify.obb_aabb,
+        "obb_transform": cubify.obb_transform,
+        "position": cubify.position,
+        "initial_obb_aabb": cubify.obb_aabb,
+        "initial_obb_transform": cubify.obb_transform,
+        "initial_position": cubify.position,
+    }
+    if recon is not None:
+        return recon.model_copy(update=box)
+    return ObjectReconstruction(
+        reconstruction_id=0,
+        sequence_id=cubify.sequence_id,
+        object_id=cubify.object_id,
+        time_range_start_ns=0,
+        time_range_end_ns=0,
+        **box,
+    )

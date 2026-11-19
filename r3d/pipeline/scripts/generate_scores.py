@@ -72,7 +72,12 @@ def main() -> None:
             f"{annotation.query_layer.question_type.value} -> {status}"
         )
 
-    generate_report(score_store, annotations, output_dir)
+    generate_report(
+        score_store,
+        annotations,
+        output_dir,
+        parse_failures_as_incorrect=config.parse_failures_as_incorrect,
+    )
 
     response_store.close()
     score_store.close()

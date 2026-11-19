@@ -3,8 +3,7 @@
 """Shared ADT (Aria Digital Twin) provider loading.
 
 Centralises the 3-line pattern of instantiating
-AriaDigitalTwinDataPathsProvider -> get_datapaths -> AriaDigitalTwinDataProvider
-that was previously copy-pasted across many call-sites.
+AriaDigitalTwinDataPathsProvider -> get_datapaths -> AriaDigitalTwinDataProvider.
 """
 
 from __future__ import annotations

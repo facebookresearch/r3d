@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -75,6 +76,36 @@ class TestSQLiteFrameStore(unittest.TestCase):
             self.assertEqual(timestamps, [100, 200, 300])
             store.close()
 
+
+    def test_concurrent_reads_from_threads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "frames.db"
+            store = SQLiteFrameStore(db_path)
+            intrinsics = CameraIntrinsics(
+                fx=100.0, fy=100.0, cx=50.0, cy=50.0, width=100, height=100
+            )
+            timestamps = list(range(2000))
+            for ts in timestamps:
+                store.write_frame(
+                    sequence_id="seq001",
+                    timestamp_ns=ts,
+                    rgb_path=f"frame_data/{ts}_rgb.png",
+                    depth_path=f"frame_data/{ts}_depth.png",
+                    intrinsics=intrinsics,
+                    T_scene_device=np.eye(4) * (ts + 1),
+                    T_device_camera=np.eye(4),
+                    depth_source=DepthSource.GROUND_TRUTH,
+                )
+            store.close()
+
+            reader = SQLiteFrameStore(db_path, read_only=True)
+            with ThreadPoolExecutor(max_workers=16) as pool:
+                poses = list(
+                    pool.map(lambda ts: reader.load_frame_pose("seq001", ts), timestamps)
+                )
+            for ts, (_, T_scene_device, _) in zip(timestamps, poses):
+                self.assertEqual(T_scene_device[0, 0], ts + 1)
+            reader.close()
 
 class TestSQLiteObjectPointsStore(unittest.TestCase):
     def test_write_and_read(self) -> None:

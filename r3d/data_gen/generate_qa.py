@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
-"""V2 question generation pipeline.
-
-Clean-break v2 orchestrator.  Outputs Annotation natively -- no
-_PartialAnnotationSample, no string-answer round-tripping, no v1
-backward compatibility.
+"""Question generation pipeline. Outputs Annotation objects.
 
 Key design: disambiguation is orthogonal to question type.
 All objects are resolved to ObjectRefs *before* generators run.
